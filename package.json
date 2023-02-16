@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev":"nodemon index.js"
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +13,7 @@
     "apollo-server": "^3.11.1",
     "apollo-server-core": "^3.11.1",
     "graphql": "^16.6.0",
+    "nanoid": "^3.0.0",
     "nodemon": "^2.0.20"
   }
 }
