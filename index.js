@@ -1,10 +1,9 @@
-const { ApolloServer, gql} = require('apollo-server')
-const {ApolloServerPluginLandingPageGraphQLPlayground} = require('apollo-server-core')
+const {GraphQLServer, PubSub, withFilter} = require('graphql-yoga')
 const {events, locations, users, participants} = require('./data')
 const { nanoid } = require('nanoid');
 
 
-const typeDefs = gql `
+const typeDefs = `
 
 type User {
        id:ID!
@@ -127,9 +126,46 @@ type Mutation {
         deleteParticipant(id:ID!):Participant!
         deleteAllParticipants:DeleteAllOutPut!
     }
+
+    type Subscription {
+        
+        userCreated: User!
+        userUpdated: User!
+        userDeleted: User!
+        
+        eventCreated: Event!
+        eventUpdated: Event!
+        eventDeleted: Event!
+        
+        locationCreated: Location!
+        locationUpdated: Location!
+        locationDeleted: Location!
+        
+        participantAdded: Participant!
+        participantUpdated: Participant!
+        participantDeleted: Participant!
+    }
 `;
 
 const resolvers = {
+    Subscription: {
+        userCreated: {
+          subscribe: (_, __, { pubsub }) => pubsub.subscribe("userCreated"),
+          resolve: (payload) => payload,
+        },
+        eventCreated: {
+          subscribe: (_, __, { pubsub }) => pubsub.subscribe("eventCreated"),
+          resolve: (payload) => payload,
+        },
+        participantAdded: {
+          subscribe: (_, __, { pubsub }) => pubsub.subscribe("participantAdded"),
+          resolve: (payload) => payload,
+        },
+        locationCreated: {
+            subscribe: (_, __, { pubsub }) => pubsub.subscribe("locationCreated"),
+            resolve: (payload) => payload,
+          },
+      },
 
     Mutation : {
         addUser: (parent,{data }) => {
@@ -139,6 +175,7 @@ const resolvers = {
             }
 
             users.push(user);
+            pubsub.publish("userCreated", user);
             return user
         },
         updateUser: (parent, {id,data}) => {
@@ -178,6 +215,7 @@ const resolvers = {
             }
 
             events.push(event);
+            pubsub.publish("eventCreated", event);
             return event
         },
         updateEvent: (parent, {id,data}) => {
@@ -217,6 +255,7 @@ const resolvers = {
             }
 
             locations.push(location);
+            pubsub.publish("locationCreated", location);
             return location
         },
         updateLocation: (parent, {id,data}) => {
@@ -256,6 +295,7 @@ const resolvers = {
             }
 
             participants.push(participant);
+            pubsub.publish("participantAdded", participant);
             return participant
         },
         updateParticipant: (parent, {id,data}) => {
@@ -312,16 +352,7 @@ const resolvers = {
     }
 }
 
-const server = new ApolloServer({
-    typeDefs, 
-    resolvers,
-    plugins: [
-        ApolloServerPluginLandingPageGraphQLPlayground({
-            //options
-        }),
-    ]
-})
+const pubsub = new PubSub()
+const server = new GraphQLServer({typeDefs,resolvers,context: {pubsub}});
 
-  server.listen().then(({url}) => {
-    console.log(`Server Readt at ${url}`)
-  });
+server.start(() => console.log('server running on localhost:400'))
